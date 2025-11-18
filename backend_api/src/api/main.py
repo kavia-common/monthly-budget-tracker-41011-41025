@@ -120,9 +120,18 @@ class CategoryRead(BaseModel):
 
 
 class TransactionBase(BaseModel):
-    """Base transaction schema for create/update."""
+    """Base transaction schema for create/update.
+
+    Notes:
+    - Keep 'date' field as transaction_date alias handled via Date alias to avoid shadowing built-in 'date'.
+    - Avoid using typing.Annotated; rely on Field(...) exclusively for Pydantic v2 compatibility.
+    """
+    # Keep attribute name aligned with API schema 'date' but ensure we use Date alias import
     date: Date = Field(..., description="Transaction date in ISO format (YYYY-MM-DD).")
-    amount: float = Field(..., description="Positive for income, negative for expense optional; we still rely on category type.")
+    amount: float = Field(
+        ...,
+        description="Positive for income, negative for expense optional; we still rely on category type.",
+    )
     category_id: int = Field(..., description="Existing category ID.")
     note: Optional[str] = Field(None, max_length=200)
     month: str = Field(..., description="Month in YYYY-MM format.")
