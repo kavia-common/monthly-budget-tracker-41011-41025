@@ -42,11 +42,17 @@ class User(SQLModel, table=True):
 
 
 class Category(SQLModel, table=True):
-    """Category for transactions and budgets."""
+    """Category for transactions and budgets.
+
+    Note:
+    - Database column is 'category_type' to avoid clashing with the built-in/type annotation name 'type'.
+    - API response schemas still expose field 'type' for backward compatibility.
+    """
     id: Optional[int] = SQLField(default=None, primary_key=True)
     name: str = SQLField(index=True)
-    type: str = SQLField(index=True)  # "income" | "expense"
+    category_type: str = SQLField(index=True)  # "income" | "expense"
 
+    # Use forward-ref strings for relationships to avoid runtime annotation resolution issues
     transactions: List["Transaction"] = Relationship(back_populates="category")
     budgets: List["Budget"] = Relationship(back_populates="category")
 
@@ -267,7 +273,7 @@ def compute_spent_for_category_month(session: Session, category_id: int, month: 
     cat = session.get(Category, category_id)
     if not cat:
         return 0.0
-    if cat.type != "expense":
+    if cat.category_type != "expense":
         return 0.0
 
     stmt = select(Transaction).where(Transaction.category_id == category_id, Transaction.month == month)
@@ -339,7 +345,8 @@ def list_categories(session: Session = Depends(get_session)) -> List[CategoryRea
     """Return all categories."""
     stmt = select(Category)
     items = session.exec(stmt).all()
-    return [CategoryRead(id=c.id, name=c.name, type=c.type) for c in items]
+    # Map underlying model 'category_type' to API field 'type'
+    return [CategoryRead(id=c.id, name=c.name, type=c.category_type) for c in items]
 
 
 transactions_router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -564,7 +571,7 @@ def _calc_income_expense_for_month(session: Session, month: str) -> Tuple[float,
         cat = cat_map.get(t.category_id)
         if not cat:
             continue
-        if cat.type == "income":
+        if cat.category_type == "income":
             income_total += abs(t.amount)
         else:
             expense_total += abs(t.amount)
@@ -578,7 +585,7 @@ def _calc_top_categories(session: Session, month: str, limit: int = 5) -> List[D
     stmt = select(Transaction).where(Transaction.month == month)
     for t in session.exec(stmt):
         cat = cat_map.get(t.category_id)
-        if not cat or cat.type != "expense":
+        if not cat or cat.category_type != "expense":
             continue
         sums[t.category_id] = sums.get(t.category_id, 0.0) + abs(t.amount)
     # Sort desc
@@ -603,7 +610,7 @@ def _calc_timeseries(session: Session, month: str) -> List[DashboardTimeseriesPo
             continue
         if day not in by_day:
             by_day[day] = {"income": 0.0, "expense": 0.0}
-        if cat.type == "income":
+        if cat.category_type == "income":
             by_day[day]["income"] += abs(t.amount)
         else:
             by_day[day]["expense"] += abs(t.amount)
@@ -661,13 +668,13 @@ def _ensure_seed_categories(session: Session) -> List[Category]:
     if existing:
         return existing
     preset = [
-        Category(name="Salary", type="income"),
-        Category(name="Freelance", type="income"),
-        Category(name="Groceries", type="expense"),
-        Category(name="Rent", type="expense"),
-        Category(name="Utilities", type="expense"),
-        Category(name="Transport", type="expense"),
-        Category(name="Dining", type="expense"),
+        Category(name="Salary", category_type="income"),
+        Category(name="Freelance", category_type="income"),
+        Category(name="Groceries", category_type="expense"),
+        Category(name="Rent", category_type="expense"),
+        Category(name="Utilities", category_type="expense"),
+        Category(name="Transport", category_type="expense"),
+        Category(name="Dining", category_type="expense"),
     ]
     for c in preset:
         session.add(c)
