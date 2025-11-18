@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date as Date, datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
@@ -60,7 +60,7 @@ class Category(SQLModel, table=True):
 class Transaction(SQLModel, table=True):
     """Financial transaction tied to a category and a month."""
     id: Optional[int] = SQLField(default=None, primary_key=True)
-    date: date
+    date: Date
     amount: float
     note: Optional[str] = None
     month: str = SQLField(index=True)  # YYYY-MM
@@ -121,7 +121,7 @@ class CategoryRead(BaseModel):
 
 class TransactionBase(BaseModel):
     """Base transaction schema for create/update."""
-    date: date = Field(..., description="Transaction date in ISO format (YYYY-MM-DD).")
+    date: Date = Field(..., description="Transaction date in ISO format (YYYY-MM-DD).")
     amount: float = Field(..., description="Positive for income, negative for expense optional; we still rely on category type.")
     category_id: int = Field(..., description="Existing category ID.")
     note: Optional[str] = Field(None, max_length=200)
@@ -144,7 +144,7 @@ class TransactionCreate(TransactionBase):
 
 class TransactionUpdate(BaseModel):
     """Update transaction payload (partial allowed)."""
-    date: Optional[date] = None
+    date: Optional[Date] = None
     amount: Optional[float] = None
     category_id: Optional[int] = None
     note: Optional[str] = Field(None, max_length=200)
@@ -165,7 +165,7 @@ class TransactionUpdate(BaseModel):
 class TransactionRead(BaseModel):
     """Transaction read schema."""
     id: int
-    date: date
+    date: Date
     amount: float
     category_id: int
     note: Optional[str]
@@ -694,20 +694,20 @@ def _seed_transactions_and_budgets(session: Session) -> None:
 
     # Income
     income_tx = [
-        Transaction(date=date.fromisoformat(f"{cm}-01"), amount=5000.0, category_id=cat_by_name["Salary"].id, note="Monthly salary", month=cm),
-        Transaction(date=date.fromisoformat(f"{cm}-15"), amount=800.0, category_id=cat_by_name["Freelance"].id, note="Contract work", month=cm),
-        Transaction(date=date.fromisoformat(f"{pm}-01"), amount=5000.0, category_id=cat_by_name["Salary"].id, note="Last month salary", month=pm),
+        Transaction(date=Date.fromisoformat(f"{cm}-01"), amount=5000.0, category_id=cat_by_name["Salary"].id, note="Monthly salary", month=cm),
+        Transaction(date=Date.fromisoformat(f"{cm}-15"), amount=800.0, category_id=cat_by_name["Freelance"].id, note="Contract work", month=cm),
+        Transaction(date=Date.fromisoformat(f"{pm}-01"), amount=5000.0, category_id=cat_by_name["Salary"].id, note="Last month salary", month=pm),
     ]
 
     # Expenses (negative or positive amounts; we take absolute in computations)
     expense_tx = [
-        Transaction(date=date.fromisoformat(f"{cm}-02"), amount=120.5, category_id=cat_by_name["Groceries"].id, note="Weekly groceries", month=cm),
-        Transaction(date=date.fromisoformat(f"{cm}-03"), amount=1500.0, category_id=cat_by_name["Rent"].id, note="Apartment rent", month=cm),
-        Transaction(date=date.fromisoformat(f"{cm}-05"), amount=85.75, category_id=cat_by_name["Utilities"].id, note="Electricity bill", month=cm),
-        Transaction(date=date.fromisoformat(f"{cm}-07"), amount=60.0, category_id=cat_by_name["Transport"].id, note="Monthly pass", month=cm),
-        Transaction(date=date.fromisoformat(f"{cm}-09"), amount=45.2, category_id=cat_by_name["Dining"].id, note="Dinner out", month=cm),
-        Transaction(date=date.fromisoformat(f"{pm}-04"), amount=130.0, category_id=cat_by_name["Groceries"].id, note="Last month groceries", month=pm),
-        Transaction(date=date.fromisoformat(f"{pm}-05"), amount=1500.0, category_id=cat_by_name["Rent"].id, note="Last month rent", month=pm),
+        Transaction(date=Date.fromisoformat(f"{cm}-02"), amount=120.5, category_id=cat_by_name["Groceries"].id, note="Weekly groceries", month=cm),
+        Transaction(date=Date.fromisoformat(f"{cm}-03"), amount=1500.0, category_id=cat_by_name["Rent"].id, note="Apartment rent", month=cm),
+        Transaction(date=Date.fromisoformat(f"{cm}-05"), amount=85.75, category_id=cat_by_name["Utilities"].id, note="Electricity bill", month=cm),
+        Transaction(date=Date.fromisoformat(f"{cm}-07"), amount=60.0, category_id=cat_by_name["Transport"].id, note="Monthly pass", month=cm),
+        Transaction(date=Date.fromisoformat(f"{cm}-09"), amount=45.2, category_id=cat_by_name["Dining"].id, note="Dinner out", month=cm),
+        Transaction(date=Date.fromisoformat(f"{pm}-04"), amount=130.0, category_id=cat_by_name["Groceries"].id, note="Last month groceries", month=pm),
+        Transaction(date=Date.fromisoformat(f"{pm}-05"), amount=1500.0, category_id=cat_by_name["Rent"].id, note="Last month rent", month=pm),
     ]
 
     for t in income_tx + expense_tx:
